@@ -409,6 +409,21 @@ public class SQLGenerator implements SQLQueryGenerator {
 				Term right = atom.getTerm(1);
 				String leftOp = getSQLString(left, index, true);
 				String rightOp = getSQLString(right, index, true);
+				if(atom.isSpatialRelationFunction()) {
+					//if one of the two operands is a geometry literal do not search among cached geometries
+					if( !atom.toString().contains("GEOMFROMWKT")) {
+						String tblde9imColumn = getTblde9imColumn(atom.toString());
+						if(tblde9imColumn.equals("")) {
+							return String.format("(" + expressionFormat + ")", leftOp, rightOp);
+						}
+						else {
+							String tblaliasid1 = leftOp.split("\\.")[0];
+							String tblaliasid2 = rightOp.split("\\.")[0];
+							String finalexpression = "( ("+ tblaliasid1 + ".\"s\"" + " = tblde9im.\"id1\") AND (" + tblaliasid2 + ".\"s\"" + " = tblde9im.\"id2\") AND (" + "tblde9im.\"" + tblde9imColumn + "\" = \"true\") )";
+							return finalexpression;
+						}
+					}
+				}
 				return String.format("(" + expressionFormat + ")", leftOp, rightOp);
 			} else if (atom.isArithmeticFunction()) {
 				// For numerical operators, e.g., MULTIPLY, SUBTRACT, ADDITION
@@ -451,6 +466,39 @@ public class SQLGenerator implements SQLQueryGenerator {
 		}
 	}
 
+	private String getTblde9imColumn(String function) {
+		if(function.toLowerCase().contains("contains")) {
+			return "contains";
+		}
+		else if(function.toLowerCase().contains("coveredby")) {
+			return "coveredby";
+		}
+		else if(function.toLowerCase().contains("covers")) {
+			return "covers";
+		}
+		else if(function.toLowerCase().contains("crosses")) {
+			return "crosses";
+		}
+		else if(function.toLowerCase().contains("equals")) {
+			return "equals";
+		}
+		else if(function.toLowerCase().contains("intersects")) {
+			return "intersects";
+		}
+		else if(function.toLowerCase().contains("overlaps")) {
+			return "overlaps";
+		}
+		else if(function.toLowerCase().contains("touches")) {
+			return "touches";
+		}
+		else if(function.toLowerCase().contains("within")) {
+			return "within";
+		}
+		else {
+			return "";
+		}
+	}
+	
 	/**
 	 * Returns the table definition for these atoms. By default, a list of atoms
 	 * represents JOIN or LEFT JOIN of all the atoms, left to right. All boolean
@@ -580,7 +628,7 @@ public class SQLGenerator implements SQLQueryGenerator {
 	 */
 	private String getTableDefinition(Function atom, QueryAliasIndex index, String indent) {
 		Predicate predicate = atom.getFunctionSymbol();
-		if (predicate instanceof BooleanOperationPredicate
+		if ((predicate instanceof BooleanOperationPredicate && !predicate.isSpatialRelationPredicate())
 				|| predicate instanceof NumericalOperationPredicate
 				|| predicate instanceof DatatypePredicate) {
 			// These don't participate in the FROM clause
@@ -596,7 +644,10 @@ public class SQLGenerator implements SQLQueryGenerator {
 				return getTableDefinitions(innerTerms, index, false, true, indent + INDENT);
 			}
 		}
-
+		else if(predicate.isSpatialRelationPredicate()) {
+			return "tblde9im";
+			//return "\"tblde9im\" tmptblde9im";
+		}
 		/*
 		 * This is a data atom
 		 */

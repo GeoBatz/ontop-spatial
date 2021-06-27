@@ -1,5 +1,8 @@
 package it.unibz.krdb.obda.model.impl;
 
+
+import com.google.common.collect.ImmutableList;
+
 /*
  * #%L
  * ontop-obdalib-core
@@ -27,6 +30,17 @@ public class PredicateImpl implements Predicate {
 	private static final long serialVersionUID = -7096056207721170465L;
 
 	public static final Predicate QUEST_TRIPLE_PRED = new PredicateImpl("triple", 3, new COL_TYPE[3]);	
+	
+	public static final ImmutableList<String> GEOMETRIES_RELATION_FUNCTIONS = 
+			  ImmutableList.of(	OBDAVocabulary.sfContains.toString(),
+					  			OBDAVocabulary.ehCoveredBy.toString(),
+					  			OBDAVocabulary.ehCovers.toString(),
+					  			OBDAVocabulary.sfCrosses.toString(),
+					  			OBDAVocabulary.sfEquals.toString(),
+					  			OBDAVocabulary.SFINTERSECTS.toString(),
+					  			OBDAVocabulary.strOverlaps.toString(),
+					  			OBDAVocabulary.sfTouches.toString(),
+					  			OBDAVocabulary.sfWithin.toString());
 	
 	private int arity = -1;
 	private String name = null;
@@ -151,4 +165,13 @@ public class PredicateImpl implements Predicate {
 	public boolean isDateTimePredicate() {
 		return this instanceof DateTimeOperationPredicate;
 	}
+	
+    @Override
+	public boolean isSpatialRelationPredicate() {
+		if (GEOMETRIES_RELATION_FUNCTIONS.contains(name)){
+			return true;
+		}
+		return false;
+	}
+
 }
